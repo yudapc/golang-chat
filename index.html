@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chat App</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+    />
+    <style>
+      #messages {
+        height: 50em;
+        overflow-y: scroll;
+        list-style-type: none;
+        padding: 0;
+        padding-bottom: 5%;
+      }
+      .message-container {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+      .message-box {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        max-width: 70%;
+      }
+      .current-user {
+        padding-left: 50%;
+      }
+      .current-user .message-box {
+        background-color: lightgreen;
+      }
+      .other-user {
+        padding-right: 50%;
+      }
+      .other-user .message-box {
+        background-color: lightblue;
+      }
+      .messageFormContainer {
+        padding-top: 10px;
+      }
+      #messageForm {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        padding: 10px;
+        background-color: white;
+        border-top: 1px solid #ccc;
+      }
+      #joined {
+        padding-bottom: 2em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chat App</h1>
+
+    <div class="container join-container">
+      <div class="mb-3">
+        <label for="roomInput" class="form-label">Room:</label>
+        <input
+          type="text"
+          id="roomInput"
+          class="form-control"
+          placeholder="Enter room name"
+          value="ngobrol"
+        />
+      </div>
+      <div class="mb-3">
+        <label for="usernameInput" class="form-label">Username:</label>
+        <input
+          type="text"
+          id="usernameInput"
+          class="form-control"
+          placeholder="Enter username"
+        />
+      </div>
+      <button id="joinButton" class="btn btn-primary">Join</button>
+    </div>
+
+    <div id="joined">
+      <h2>Joined room: <span id="roomName"></span></h2>
+      Username: <strong><span id="username"></span></strong>
+    </div>
+
+    <div id="chatContainer" style="display: none">
+      <ul id="messages" class="container"></ul>
+    </div>
+    <div class="container messageFormContainer">
+      <form id="messageForm" class="container mt-3">
+        <div class="input-group">
+          <input
+            type="text"
+            id="messageInput"
+            class="form-control"
+            placeholder="Type your message"
+          />
+          <button type="submit" class="btn btn-primary">Send</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.1/socket.io.js"></script>
+    <script>
+      $(document).ready(() => {
+        const socket = io('http://localhost:3000/');
+        let currentRoom = "";
+        let currentUsername = "";
+
+        $("#joined").hide();
+
+        // Join a room
+        $("#joinButton").click(() => {
+          const roomInput = $("#roomInput");
+          const room = roomInput.val().trim();
+
+          const usernameInput = $("#usernameInput");
+          const username = usernameInput.val().trim();
+
+          if (room !== "") {
+            socket.emit("joinRoom", room);
+            currentRoom = room;
+            currentUsername = username;
+            $("#chatContainer").show();
+            $(".join-container").hide();
+            $("#roomName").html(currentRoom);
+            $("#username").html(currentUsername);
+            $("#joined").show();
+          }
+        });
+
+        // Listen for messages from the server
+        socket.on("messages", (data) => {
+          const messagesElement = $("#messages");
+          messagesElement.empty();
+
+          data.forEach((message) => {
+            let messageElement = $("<li></li>");
+            if (message.sender === currentUsername) {
+              messageElement.addClass("current-user");
+            } else {
+              messageElement.addClass("other-user");
+            }
+            messageElement.html(
+              `<div class="message-box"><strong>${message.sender}</strong>:<br /> ${message.text}</div>`
+            );
+            messagesElement.append(messageElement);
+          });
+          messagesElement.scrollTop(messagesElement[0].scrollHeight);
+        });
+
+        // Listen for new messages from the server
+        socket.on("newMessage", (data) => {
+          const messagesElement = $("#messages");
+
+          let messageElement = $("<li></li>");
+          if (data.sender === currentUsername) {
+            messageElement.addClass("current-user");
+          } else {
+            messageElement.addClass("other-user");
+          }
+          messageElement.html(
+            `<div class="message-box"><strong>${data.sender}</strong>:<br /> ${data.text}</div>`
+          );
+          messagesElement.append(messageElement);
+          messagesElement.scrollTop(messagesElement[0].scrollHeight);
+        });
+
+        // Send a new message to the server
+        $("#messageForm").submit((event) => {
+          event.preventDefault();
+          const input = $("#messageInput");
+          const message = input.val().trim();
+          if (message !== "") {
+            socket.emit("newMessage", {
+              text: message,
+              sender: currentUsername,
+              room: currentRoom,
+            });
+            input.val("");
+          }
+        });
+
+        // Apply Buble styles to message elements
+        const styleMessages = () => {
+          const messages = document.querySelectorAll("#messages > div");
+          messages.forEach((message) => {
+            const sender = message.innerText.split(":")[0].trim();
+            if (sender === $("#usernameInput").val().trim()) {
+              message.classList.add("current-user");
+            } else {
+              message.classList.add("other-user");
+            }
+          });
+        };
+
+        styleMessages();
+      });
+    </script>
+  </body>
+</html>
