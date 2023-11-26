@@ -66,21 +66,23 @@ func socketIOWrapper(db *gorm.DB) func(context echo.Context) error {
 		return nil
 	}
 
-	server.OnConnect("/", func(context echo.Context, conn socketio.Conn) error {
+	namespace := "/"
+
+	server.OnConnect(namespace, func(context echo.Context, conn socketio.Conn) error {
 		conn.SetContext("")
 		fmt.Println("connected:", conn.ID())
 		return nil
 	})
 
-	server.OnError("/", func(context echo.Context, e error) {
+	server.OnError(namespace, func(context echo.Context, e error) {
 		fmt.Println("meet error:", e)
 	})
 
-	server.OnDisconnect("/", func(context echo.Context, conn socketio.Conn, msg string) {
+	server.OnDisconnect(namespace, func(context echo.Context, conn socketio.Conn, msg string) {
 		fmt.Println("closed", msg)
 	})
 
-	server.OnEvent("/", "joinRoom", func(context echo.Context, conn socketio.Conn, inputRoom interface{}) {
+	server.OnEvent(namespace, "joinRoom", func(context echo.Context, conn socketio.Conn, inputRoom interface{}) {
 		room := fmt.Sprintf("%v", inputRoom)
 		fmt.Println("join:", room)
 
@@ -99,7 +101,7 @@ func socketIOWrapper(db *gorm.DB) func(context echo.Context) error {
 		conn.Emit("messages", messages)
 	})
 
-	server.OnEvent("/", "newMessage", func(context echo.Context, conn socketio.Conn, inputData interface{}) {
+	server.OnEvent(namespace, "newMessage", func(context echo.Context, conn socketio.Conn, inputData interface{}) {
 		// Convert inputData to data struct
 		inputBytes, err := json.Marshal(inputData)
 		if err != nil {
@@ -122,7 +124,7 @@ func socketIOWrapper(db *gorm.DB) func(context echo.Context) error {
 		}
 
 		// Broadcast the new message to all clients in the room
-		server.BroadcastToRoom("/", data.Room, "newMessage", data)
+		server.BroadcastToRoom(namespace, data.Room, "newMessage", data)
 	})
 
 	return server.HandlerFunc
