@@ -60,7 +60,7 @@ func main() {
 }
 
 func socketIOWrapper(db *gorm.DB) func(context echo.Context) error {
-	server, err := wrapper.NewWrapper(nil)
+	server, err := wrapper.NewWrapperSocketIO(nil)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
@@ -122,7 +122,7 @@ func socketIOWrapper(db *gorm.DB) func(context echo.Context) error {
 		}
 
 		// Broadcast the new message to all clients in the room
-		server.BroadcastToRoom(data.Room, "newMessage", data)
+		server.BroadcastToRoom("/", data.Room, "newMessage", data)
 	})
 
 	return server.HandlerFunc
