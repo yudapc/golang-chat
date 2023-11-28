@@ -13,11 +13,17 @@ GOFILES := $(wildcard *.go)
 
 all: run
 
+build: main.go
+	GOOS=linux GOARCH=amd64 go build -ldflags '-s -w' -o $@
+	
+build-osx: main.go
+	GOOS=darwin GOARCH=amd64 go build -ldflags '-s -w' -o $@
+
 build-linux:
 	@echo "Building for Linux..."
 	GOOS=linux GOARCH=amd64 go build -o $(GOBIN)/$(APP_NAME)-linux $(GOFILES)
 
-build-osx:
+build-osx-m1:
 	@echo "Building for macOS..."
 	GOOS=darwin GOARCH=arm64 go build -o $(GOBIN)/$(APP_NAME)-osx $(GOFILES)
 
