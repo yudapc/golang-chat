@@ -89,6 +89,7 @@
     </div>
     <div class="container messageFormContainer">
       <form id="messageForm" class="container mt-3">
+        <div id="alertContainer"></div>
         <div class="input-group">
           <input
             type="text"
@@ -105,11 +106,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.1/socket.io.js"></script>
     <script>
       $(document).ready(() => {
-        const socket = io('http://localhost:3000/');
+        const socket = io();
         let currentRoom = "";
         let currentUsername = "";
 
         $("#joined").hide();
+        $(".messageFormContainer").hide();
+        $("#alertContainer").hide();
 
         // Join a room
         $("#joinButton").click(() => {
@@ -128,6 +131,7 @@
             $("#roomName").html(currentRoom);
             $("#username").html(currentUsername);
             $("#joined").show();
+            $(".messageFormContainer").show();
           }
         });
 
@@ -166,6 +170,25 @@
           );
           messagesElement.append(messageElement);
           messagesElement.scrollTop(messagesElement[0].scrollHeight);
+        });
+
+        // Handle reconnection
+        socket.on("reconnect", () => {
+          if (currentRoom !== "" && currentUsername !== "") {
+            socket.emit("joinRoom", currentRoom);
+            $("#alertContainer").hide();
+          }
+        });
+
+        // Handle disconnection
+        socket.on("disconnect", () => {
+          const alertElement = $("<div></div>")
+            .addClass("alert alert-danger")
+            .text(
+              "Disconnected from the server. Please check your internet connection."
+            );
+          $("#alertContainer").show();
+          $("#alertContainer").empty().append(alertElement);
         });
 
         // Send a new message to the server
