@@ -49,5 +49,5 @@ func main() {
 	e.Any("/socket.io/", pkgsocketio.SocketIOHandler(db))
 
 	// Start the server
-	e.Logger.Fatal(e.Start(":3000"))
+	e.Logger.Fatal(e.Start(":8080"))
 }
