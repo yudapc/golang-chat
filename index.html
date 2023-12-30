@@ -170,10 +170,58 @@
     />
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
+      let currentRoom = "";
+      let currentUsername = "";
+
+      // Function to get cookie value by name
+      function getCookie(name) {
+        const cookieArr = document.cookie.split("; ");
+
+        for (let i = 0; i < cookieArr.length; i++) {
+          const cookiePair = cookieArr[i].split("=");
+
+          if (cookiePair[0].trim() === name) {
+            return decodeURIComponent(cookiePair[1]);
+          }
+        }
+
+        return null;
+      }
+      // Function initial credential
+      function initialCredential(socket) {
+        const room = getCookie("room");
+        const username = getCookie("username");
+        if (room && username) {
+          currentRoom = room;
+          currentUsername = username;
+          socket.emit("joinRoom", room);
+          $("#chatContainer").show();
+          $(".join-container").hide();
+          $("#roomName").html(room);
+          $("#username").html(username);
+          $("#joined").show();
+          $(".messageFormContainer").show();
+        }
+      }
+      // Function to show a notification
+      function showNotification(message) {
+        if (Notification.permission === "granted" && message) {
+          new Notification("New Message", {
+            body: message,
+          });
+        } else if (Notification.permission !== "denied") {
+          Notification.requestPermission().then((permission) => {
+            if (permission === "granted") {
+              new Notification("Yey, your notification is allowed!", {
+                body: message,
+              });
+            }
+          });
+        }
+      }
+
       $(document).ready(() => {
         const socket = io();
-        let currentRoom = "";
-        let currentUsername = "";
 
         $("#joined").hide();
         $(".messageFormContainer").hide();
@@ -191,6 +239,12 @@
             socket.emit("joinRoom", room);
             currentRoom = room;
             currentUsername = username;
+
+            // Set room and username as cookies
+            document.cookie = `room=${currentRoom}`;
+            document.cookie = `username=${currentUsername}`;
+
+
             $("#chatContainer").show();
             $(".join-container").hide();
             $("#roomName").html(currentRoom);
@@ -223,12 +277,14 @@
         // Listen for new messages from the server
         socket.on("newMessage", (data) => {
           const messagesElement = $("#messages");
-
           let messageElement = $("<li></li>");
           if (data.sender === currentUsername) {
             messageElement.addClass("current-user");
           } else {
             messageElement.addClass("other-user");
+            setTimeout(() => {
+              showNotification(data.text);
+            }, 500);
           }
           messageElement.html(
             `<div class="message-box"><strong>${data.sender}</strong>:<br /> ${data.text}</div>`
@@ -284,7 +340,9 @@
           });
         };
 
+        initialCredential(socket);
         styleMessages();
+        showNotification();
       });
     </script>
   </body>
